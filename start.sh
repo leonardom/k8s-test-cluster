@@ -7,7 +7,7 @@ for project in ${projects[@]}; do
   minikube image load "leonardom/$project-app"
 done
 
-echo "Deploying $project in minikube..."
+echo "Deploying projects in minikube..."
 kubectl apply -f ./k8s --recursive
 
 for project in ${projects[@]}; do
