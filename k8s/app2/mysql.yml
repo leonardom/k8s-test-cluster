@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pv-claim # name of PVC essential for identifying the storage data
+  labels:
+    app: mysql
+spec:
+  accessModes:
+    - ReadWriteOnce   #This specifies the mode of the claim that we are trying to create.
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-albums-mysql
+  labels:
+    app: go-albums-mysql
+    tier: database
+spec:
+  selector: 
+    matchLabels:
+      app: go-albums-mysql
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels: 
+        app: go-albums-mysql
+    spec:
+      containers:
+        - name: mysql
+          image: mysql
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: root
+            - name: MYSQL_DATABASE
+              value: devdb
+            - name: MYSQL_USER
+              value: devdbuser
+            - name: MYSQL_PASSWORD
+              value: devdbpwd
+          ports:
+            - containerPort: 3306
+              name: mysql
+          volumeMounts:
+            - name: mysql-persistance-storage
+              mountPath: /var/lib/mysql
+            - name: go-albums-dbcreation-script
+              mountPath: /docker-entrypoint-initdb.d
+      volumes:
+        - name: mysql-persistance-storage
+          persistentVolumeClaim:
+            claimName: mysql-pv-claim
+        - name: go-albums-dbcreation-script
+          configMap:
+            name: go-albums-dbcreation-script
+            defaultMode: 0744
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: go-albums-myql-service
+spec:
+  ports:
+    - port: 3306
+      targetPort: 3306
+  selector:
+    app: go-albums-mysql
